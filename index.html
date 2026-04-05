@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBuy AI – Stop Getting Fooled by Fake Amazon Reviews</title>
+  <meta name="description" content="Free Chrome extension that uses AI to detect fake Amazon reviews, summarize feedback, and tell you exactly what to buy.">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy: #060d1a;
+      --navy2: #0c1a2e;
+      --navy3: #112240;
+      --blue: #2563eb;
+      --blue-light: #3b82f6;
+      --blue-glow: #60a5fa;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --green-light: #34d399;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --white: #f8fafc;
+      --muted: #94a3b8;
+      --border: rgba(255,255,255,0.07);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'Instrument Sans', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(6, 13, 26, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .nav-logo-text {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: -0.4px;
+    }
+
+    .nav-logo-text em {
+      color: var(--blue-glow);
+      font-style: normal;
+    }
+
+    .nav-cta {
+      background: var(--blue);
+      color: white;
+      text-decoration: none;
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s, transform 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-cta:hover {
+      background: var(--blue-light);
+      transform: translateY(-1px);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 20px 80px;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37, 99, 235, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 20% 50%, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%);
+    }
+
+    .hero-content {
+      position: relative;
+      max-width: 780px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green-light);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--green-light);
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+      animation: fadeDown 0.6s ease 0.1s both;
+    }
+
+    .hero h1 .accent {
+      background: linear-gradient(135deg, #60a5fa, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero h1 .accent-red {
+      background: linear-gradient(135deg, #f87171, #fb923c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+      animation: fadeDown 0.6s ease 0.2s both;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      animation: fadeDown 0.6s ease 0.3s both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--blue);
+      color: white;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      transition: all 0.2s;
+      box-shadow: 0 0 40px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-light);
+      transform: translateY(-2px);
+      box-shadow: 0 0 60px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .btn-secondary:hover { color: var(--white); }
+
+    .hero-proof {
+      margin-top: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      animation: fadeDown 0.6s ease 0.4s both;
+    }
+
+    .proof-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .proof-icon { color: var(--green-light); font-size: 14px; }
+
+    /* ── FAKE REVIEW DEMO ── */
+    .demo-section {
+      padding: 100px 20px;
+      position: relative;
+    }
+
+    .demo-section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    }
+
+    .section-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--blue-glow);
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      line-height: 1.1;
+    }
+
+    .section-sub {
+      text-align: center;
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 480px;
+      margin: 0 auto 60px;
+    }
+
+    .demo-card {
+      max-width: 700px;
+      margin: 0 auto;
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 40px 120px rgba(0,0,0,0.5);
+    }
+
+    .demo-header {
+      background: var(--navy3);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .demo-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .demo-logo em { color: var(--blue-glow); font-style: normal; }
+
+    .demo-active {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green-light);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .demo-body { padding: 24px; }
+
+    .verdict-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+
+    .verdict-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .verdict-text { font-size: 17px; font-weight: 800; color: var(--green-light); }
+
+    .scores-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .score-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .score-num {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--green-light);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .score-num.danger { color: #f87171; }
+
+    .score-desc { font-size: 12px; color: var(--muted); }
+
+    .proscons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .pros, .cons {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .pros h4 { font-size: 11px; color: var(--green-light); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; font-weight: 700; }
+    .cons h4 { font-size: 11px; color: #f87171; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; font-weight: 700; }
+
+    .pros li, .cons li {
+      list-style: none;
+      font-size: 12px;
+      color: #cbd5e1;
+      padding: 3px 0;
+      display: flex;
+      gap: 6px;
+    }
+
+    /* ── FEATURES ── */
+    .features-section {
+      padding: 100px 20px;
+      position: relative;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(37, 99, 235, 0.4);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .icon-blue { background: rgba(37, 99, 235, 0.15); }
+    .icon-green { background: rgba(16, 185, 129, 0.15); }
+    .icon-amber { background: rgba(245, 158, 11, 0.15); }
+    .icon-red { background: rgba(239, 68, 68, 0.15); }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how-section {
+      padding: 100px 20px;
+      background: linear-gradient(180deg, transparent, rgba(37,99,235,0.04), transparent);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 32px;
+      left: 15%;
+      right: 15%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--blue), var(--blue), transparent);
+      opacity: 0.3;
+    }
+
+    .step {
+      text-align: center;
+      padding: 0 24px;
+    }
+
+    .step-num {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--navy2);
+      border: 2px solid var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--blue-glow);
+      margin: 0 auto 20px;
+      box-shadow: 0 0 30px rgba(37, 99, 235, 0.2);
+    }
+
+    .step h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── SOCIAL PROOF ── */
+    .proof-section {
+      padding: 80px 20px;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
+      max-width: 700px;
+      margin: 0 auto 80px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 100px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-glow {
+      position: absolute;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+
+    .cta-section p {
+      color: var(--muted);
+      font-size: 16px;
+      margin-bottom: 36px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--white); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up {
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards;
+    }
+
+    /* ── CHROME BADGE ── */
+    .chrome-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .steps::before { display: none; }
+      .stats-row { gap: 32px; }
+      .proscons, .scores-row { grid-template-columns: 1fr; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">⚡</div>
+      <span class="nav-logo-text">SmartBuy <em>AI</em></span>
+    </a>
+    <a href="#install" class="nav-cta">
+      Add to Chrome — Free
+    </a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="chrome-badge">
+        🟢 &nbsp;Free Chrome Extension · No signup required
+      </div>
+      <div class="hero-badge">
+        <div class="badge-dot"></div>
+        AI-Powered Review Analysis
+      </div>
+      <h1>
+        Stop getting fooled by<br>
+        <span class="accent-red">fake Amazon reviews</span>
+      </h1>
+      <p class="hero-sub">
+        SmartBuy AI analyzes hundreds of reviews in seconds — detecting fakes, summarizing feedback, and giving you a clear Buy or Avoid verdict. Completely free.
+      </p>
+      <div class="hero-actions">
+        <a href="#install" class="btn-primary">
+          ⚡ Add to Chrome — It's Free
+        </a>
+        <a href="#how" class="btn-secondary">
+          See how it works →
+        </a>
+      </div>
+      <div class="hero-proof">
+        <div class="proof-item">
+          <span class="proof-icon">✓</span>
+          <span>100% Free</span>
+        </div>
+        <div class="proof-item">
+          <span class="proof-icon">✓</span>
+          <span>No account needed</span>
+        </div>
+        <div class="proof-item">
+          <span class="proof-icon">✓</span>
+          <span>Works on all Amazon sites</span>
+        </div>
+        <div class="proof-item">
+          <span class="proof-icon">✓</span>
+          <span>Powered by Claude AI</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMO -->
+  <section class="demo-section">
+    <div class="section-label">Live Preview</div>
+    <h2 class="section-title">See it in action</h2>
+    <p class="section-sub">This is what appears on every Amazon product page after you install SmartBuy AI</p>
+
+    <div class="demo-card">
+      <div class="demo-header">
+        <div class="demo-logo">⚡ SmartBuy <em>AI</em></div>
+        <div class="demo-active">
+          <div class="badge-dot"></div>
+          Analysis complete
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="verdict-row">
+          <span class="verdict-label">AI Verdict</span>
+          <span class="verdict-text">✓ Highly Recommended</span>
+        </div>
+        <div class="scores-row">
+          <div class="score-card">
+            <div class="score-num">87</div>
+            <div class="score-desc">Trust Score out of 100</div>
+          </div>
+          <div class="score-card">
+            <div class="score-num danger">Low</div>
+            <div class="score-desc">Fake Review Risk</div>
+          </div>
+        </div>
+        <div class="proscons">
+          <div class="pros">
+            <h4>✓ Pros</h4>
+            <ul>
+              <li>✅ Excellent battery life — 30+ hrs</li>
+              <li>✅ Premium build quality, solid feel</li>
+              <li>✅ Great value for the price</li>
+            </ul>
+          </div>
+          <div class="cons">
+            <h4>✗ Cons</h4>
+            <ul>
+              <li>❌ Charging case scratches easily</li>
+              <li>❌ Bass could be stronger</li>
+              <li>❌ Touch controls take getting used to</li>
+            </ul>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;font-size:13px;color:#94a3b8;line-height:1.6;">
+          <strong style="color:#cbd5e1;">AI Summary:</strong> This product has a strong trust score backed by consistent, detailed reviews over 18+ months. Most buyers praise the battery life and sound quality. The minor complaints about the case are cosmetic only.
+          <div style="margin-top:8px;font-size:12px;color:#60a5fa;">🎯 Best for: Everyday commuters and remote workers who need reliable wireless audio.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Everything you need to<br>shop smarter</h2>
+    <p class="section-sub">All features are free. No hidden costs, no signup, no tracking.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon icon-red">🕵️</div>
+        <h3>Fake Review Detection</h3>
+        <p>Our AI scores review authenticity from 0–100, detecting unnatural patterns, incentivized reviews, and bot activity that Amazon doesn't catch.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-blue">💬</div>
+        <h3>Instant AI Summary</h3>
+        <p>Instead of reading 500 reviews, get the top 3 pros and cons in seconds — extracted directly from what real customers said.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-green">✅</div>
+        <h3>Buy / Avoid Verdict</h3>
+        <p>Clear, honest AI verdict: Highly Recommended, Recommended, Proceed with Caution, or Avoid — no ambiguity.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-amber">🚩</div>
+        <h3>Red Flag Alerts</h3>
+        <p>Get warned about suspicious patterns like sudden rating spikes, review flooding, and misleading product descriptions.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section" id="how">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">3 steps to smarter shopping</h2>
+    <p class="section-sub" style="margin-bottom:60px;">Takes 30 seconds to install, works automatically forever after.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install the extension</h3>
+        <p>One click from the Chrome Web Store. No signup, no email, no credit card.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Browse Amazon normally</h3>
+        <p>Open any product page. SmartBuy AI automatically appears in the review section.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Get instant AI analysis</h3>
+        <p>Click Analyze and get a full verdict, summary, and fake review score in seconds.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="proof-section">
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-num">4.2B</div>
+        <div class="stat-label">Fake reviews on Amazon per year</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">42%</div>
+        <div class="stat-label">Of shoppers misled by fake reviews</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">$0</div>
+        <div class="stat-label">Cost to you, forever</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section" id="install">
+    <div class="cta-glow"></div>
+    <h2>Ready to shop smarter?</h2>
+    <p>Join thousands of shoppers who never get fooled by fake reviews.</p>
+    <a href="https://chrome.google.com/webstore" class="btn-primary" style="font-size:17px;padding:16px 36px;">
+      ⚡ Add SmartBuy AI to Chrome — Free
+    </a>
+    <div class="hero-proof" style="margin-top:28px;">
+      <div class="proof-item"><span class="proof-icon">✓</span><span>Free forever</span></div>
+      <div class="proof-item"><span class="proof-icon">✓</span><span>No signup</span></div>
+      <div class="proof-item"><span class="proof-icon">✓</span><span>Works instantly</span></div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="nav-logo">
+      <div class="nav-logo-icon" style="width:28px;height:28px;font-size:13px;">⚡</div>
+      <span class="nav-logo-text" style="font-size:15px;">SmartBuy <em>AI</em></span>
+    </div>
+    <span class="footer-copy">© 2026 SmartBuy AI. All rights reserved.</span>
+    <div class="footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Contact</a>
+    </div>
+  </footer>
+
+</body>
+</html>
