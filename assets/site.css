@@ -205,7 +205,7 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 700; letter-sp
 .close-foot p { max-width: 34ch; font-size: var(--step-lead); line-height: 1.4; }
 
 /* ---------- footer ---------- */
-.foot { background: var(--ink); color: var(--bg); padding: 160px var(--margin) 0; overflow: hidden; }
+.foot { background: var(--ink); color: var(--bg); padding: 160px var(--margin) 48px; overflow: hidden; }
 .foot-top { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
 .foot-invite { grid-column: 1 / 8; font-size: var(--step-head); }
 .foot-links { grid-column: 10 / -1; list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; align-content: start; }
@@ -280,7 +280,7 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 700; letter-sp
   .close-title { font-size: 13vw; }
   .close-foot { flex-direction: column; align-items: stretch; }
   .close-foot .btn { width: 100%; }
-  .foot { padding-top: 80px; }
+  .foot { padding-top: 80px; padding-bottom: 32px; }
   .foot-top { display: block; }
   .foot-invite { font-size: 11vw; margin-bottom: 32px; }
   .foot-links { display: flex; flex-wrap: wrap; gap: 12px 20px; }
