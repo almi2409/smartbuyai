@@ -82,8 +82,8 @@
   const STAGES = [
     { clause: 'Open a product page.', note: 'Any listing on aliexpress.com. Nothing to sign up for.', ui: () => `
         <div class="mock-page"><p class="mock-title">2026 Series 10 GPS Smart Watch</p><p class="mock-stars">5.0 stars · 693 reviews</p><p class="mock-note">Bluetooth call · Heart rate · NFC</p></div>` },
-    { clause: 'Press “Check reviews”.', note: 'The button sits at the bottom right of the product page.', ui: () => `
-        <div class="mock-page"><p class="mock-title">2026 Series 10 GPS Smart Watch</p><p class="mock-stars">5.0 stars · 693 reviews</p><img class="mock-launch is-pressed" src="assets/shots/launcher.webp" width="320" height="88" alt="The SmartBuy “Check reviews” button"></div>` },
+    { clause: 'Click the SmartBuy icon.', note: 'It sits in your Chrome toolbar and shows “AI” on product pages. Nothing is added to AliExpress itself.', ui: () => `
+        <div class="mock-page"><p class="mock-title">2026 Series 10 GPS Smart Watch</p><p class="mock-stars">5.0 stars · 693 reviews</p><span style="position:relative;display:inline-block;margin-top:14px"><img src="assets/icon.svg" width="44" height="44" alt="The SmartBuy AI toolbar icon"><span style="position:absolute;right:-12px;bottom:-6px;background:#232323;color:#a1ffcb;font:700 11px/1 -apple-system,Segoe UI,Arial,sans-serif;padding:3px 5px;border-radius:4px">AI</span></span></div>` },
     { clause: 'It reads twenty reviews.', note: 'The newest ones, translated, with their stars.', ui: () => `
         <ul class="mock-reviews">
           <li><span>5 stars</span> “Very beautiful clock. I arrived super fast…”</li>
