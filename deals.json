@@ -1,6 +1,21 @@
 {
   "aliexpress": {
     "affiliateBase": "https://rzekl.com/g/1e8d114494e11dab95db16525dc3e8/?subid=smartbuy-ext&ulp=",
-    "coupons": []
+    "coupons": [
+      {
+        "text": "Black Friday & Cyber Monday sale, all countries (ends 3 Dec)",
+        "expires": "2026-12-03"
+      },
+      {
+        "text": "AT, BE, DK, FI, IE, SE: €6 off orders over €46",
+        "code": "NWEBF06",
+        "expires": "2026-12-03"
+      },
+      {
+        "text": "BG, HR, CY, EE, GR, LV, LT, LU, MT, RO, SK, SI: $6 off orders over $40",
+        "code": "OTEBF06",
+        "expires": "2026-12-03"
+      }
+    ]
   }
 }
